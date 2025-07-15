@@ -1,0 +1,33 @@
+name: Run Pester Tests (CIS)
+
+on:
+  push:
+    paths:
+      - 'cis/**'
+      - 'config/**'
+  workflow_dispatch:
+
+jobs:
+  audit:
+    name: Run Pester Audit
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Install Pester
+        shell: pwsh
+        run: |
+          Install-Module -Name Pester -Force -SkipPublisherCheck -Scope CurrentUser
+
+      - name: Run Tests
+        shell: pwsh
+        run: |
+          Invoke-Pester -Path ./cis -OutputFormat NUnitXml -OutputFile ./output/results.xml
+
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v3
+        with:
+          name: pester-results
+          path: ./output/results.xml
