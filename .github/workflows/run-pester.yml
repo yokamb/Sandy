@@ -9,25 +9,34 @@ on:
 
 jobs:
   audit:
-    name: Run Pester Audit
+    name: Run Pester and Publish Report
     runs-on: windows-latest
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
 
+      - name: Set up Git Identity
+        run: |
+          git config --global user.email "ci@sandybot.local"
+          git config --global user.name "Sandy CI"
+
       - name: Install Pester
         shell: pwsh
         run: |
           Install-Module -Name Pester -Force -SkipPublisherCheck -Scope CurrentUser
 
-      - name: Run Tests
+      - name: Run Pester and Export HTML
         shell: pwsh
         run: |
-          Invoke-Pester -Path ./cis -OutputFormat NUnitXml -OutputFile ./output/results.xml
+          $results = Invoke-Pester -Path ./cis -PassThru
+          $timestamp = Get-Date -Format "yyyy-MM-dd-HHmmss"
+          $reportPath = "./docs/test-summary.html"
+          $results | ConvertTo-Html -Property Name, PassedCount, FailedCount, SkippedCount, Duration -Title "Pester Test Summary" |
+            Out-File $reportPath -Encoding UTF8
 
-      - name: Upload Test Results
-        uses: actions/upload-artifact@v4
-        with:
-          name: pester-results
-          path: ./output/results.xml
+      - name: Commit HTML Summary to Docs
+        run: |
+          git add docs/test-summary.html
+          git commit -m "Update test summary report [skip ci]" || echo "No changes to commit"
+          git push origin main
