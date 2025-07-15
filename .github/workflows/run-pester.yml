@@ -35,8 +35,11 @@ jobs:
           $results | ConvertTo-Html -Property Name, PassedCount, FailedCount, SkippedCount, Duration -Title "Pester Test Summary" |
             Out-File $reportPath -Encoding UTF8
 
-      - name: Commit HTML Summary to Docs
+      - name: Push Report to GitHub Pages
+        env:
+          TOKEN: ${{ secrets.GH_PAT }}
         run: |
           git add docs/test-summary.html
           git commit -m "Update test summary report [skip ci]" || echo "No changes to commit"
+          git remote set-url origin https://x-access-token:${TOKEN}@github.com/${{ github.repository }}
           git push origin main
